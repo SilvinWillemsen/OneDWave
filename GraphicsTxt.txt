@@ -1,4 +1,4 @@
-void Simple1DWave::paint (juce::Graphics& g)
+void OneDWave::paint (juce::Graphics& g)
 {
     // clear the background
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
@@ -8,7 +8,7 @@ void Simple1DWave::paint (juce::Graphics& g)
     // visualScaling depends on your excitation
     g.strokePath (visualiseState (g, 100), PathStrokeType(2.0f));
 }
-Path Simple1DWave::visualiseState (Graphics& g, double visualScaling)
+Path OneDWave::visualiseState (Graphics& g, double visualScaling)
 {
     // String-boundaries are in the vertical middle of the component
     double stringBoundaries = getHeight() / 2.0;
