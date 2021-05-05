@@ -19,10 +19,12 @@ OneDWave::OneDWave (NamedValueSet& parameters, double k) : k (k)
     
     c = *parameters.getVarPointer ("c");
     L = *parameters.getVarPointer ("L");
-    
+    sig0 = *parameters.getVarPointer ("sig0");
+
     h = c * k;
     N = floor (L / h);
     h = L / static_cast<double> (N);
+    
     
     lambdaSq = c * c * k * k / (h * h);
 
@@ -36,8 +38,6 @@ OneDWave::OneDWave (NamedValueSet& parameters, double k) : k (k)
         u[n] = &uStates[n][0];
     }
     
-    excite();
-    
 }
 
 OneDWave::~OneDWave()
@@ -46,14 +46,45 @@ OneDWave::~OneDWave()
 
 void OneDWave::paint (juce::Graphics& g)
 {
-    /* This demo code just fills the component's background and
-       draws some placeholder text to get you started.
+    // clear the background
+    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+    
+    // choose your favourite colour
+    g.setColour (Colours::cyan);
+    
+    // visualScaling depends on your excitation
+    g.strokePath (visualiseState (g, 100), PathStrokeType(2.0f));
+}
 
-       You should replace everything in this method with your own
-       drawing code..
-    */
-
-    g.fillAll (Colours::yellow);
+Path OneDWave::visualiseState (Graphics& g, double visualScaling)
+{
+    // String-boundaries are in the vertical middle of the component
+    double stringBoundaries = getHeight() / 2.0;
+    
+    // initialise path
+    Path stringPath;
+    
+    // start path
+    stringPath.startNewSubPath (0, -u[1][0] * visualScaling + stringBoundaries);
+    double spacing = getWidth() / static_cast<double>(N);
+    double x = spacing;
+    
+    for (int l = 1; l <= N; l++)
+    {
+        // Needs to be -u, because a positive u would visually go down
+        float newY = -u[1][l] * visualScaling + stringBoundaries;
+        
+        if (isnan(x) || isinf(abs(x)) || isnan(u[1][l]) || isinf(abs(u[1][l])))
+            std::cout << "Wait" << std::endl;
+        // if we get NAN values, make sure that we don’t get an
+        // exception
+        
+        if (isnan(newY))
+            newY = 0;
+        stringPath.lineTo (x, newY);
+        x += spacing;
+    }
+    return stringPath;
 }
 
 void OneDWave::resized()
@@ -68,8 +99,9 @@ void OneDWave::calculateScheme()
     // \delta_tt u = c^2 \delta_xx u
     for (int l = 1; l < N; ++l)
     {
-        u[0][l] = 2.0 * u[1][l] - u[2][l]
-                + lambdaSq * (u[1][l+1] - 2.0 * u[1][l] + u[1][l-1]);
+        u[0][l] = (2.0 * u[1][l] - u[2][l] + sig0 * k * u[2][l]
+                + lambdaSq * (u[1][l+1] - 2.0 * u[1][l] + u[1][l-1]))
+                / (1 + sig0 * k);
     }
 }
 
@@ -84,10 +116,10 @@ void OneDWave::updateStates()
 void OneDWave::excite()
 {
     //// Raised cosine excitation ////
+    excitationFlag = false;
     
     // width (in grid points) of the excitation
     double width = 10;
-    double excitationLoc = 0.2;
     
     // make sure we’re not going out of bounds at the left boundary
     int start = std::max (floor((N+1) * excitationLoc) - floor(width * 0.5), 1.0);
@@ -104,4 +136,10 @@ void OneDWave::excite()
         u[1][l+start] += 0.5 * (1 - cos(2.0 * double_Pi * l / (width-1.0)));
         u[2][l+start] += 0.5 * (1 - cos(2.0 * double_Pi * l / (width-1.0)));
     }
+}
+
+void OneDWave::mouseDown (const MouseEvent& e)
+{
+    excitationLoc = e.x / static_cast<double> (getWidth());
+    excitationFlag = true;
 }

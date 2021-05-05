@@ -22,6 +22,7 @@ MainComponent::~MainComponent()
 {
     // This shuts down the audio device and clears the audio source.
     shutdownAudio();
+    stopTimer();
 }
 
 //==============================================================================
@@ -37,11 +38,14 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     
     parameters.set ("c", 300);
     parameters.set ("L", 1);
-    
+    parameters.set ("sig0", 5);
+
     // initialise our 1DWave
     oneDWave = std::make_unique<OneDWave> (parameters, 1.0 / sampleRate);
     
     addAndMakeVisible (oneDWave.get());
+    
+    startTimerHz (15);
     
     // Make sure you set the size of the component after
     // you add any child components.
@@ -64,14 +68,17 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     
     float output = 0.0;
     
+    if (oneDWave->shouldExcite())
+        oneDWave->excite();
+    
     for (int i = 0; i < bufferToFill.numSamples; ++i)
     {
+        
         oneDWave->calculateScheme();
         
-        
-        output = 0.1 * oneDWave->getOutput (0.3);
-//        outputL[i] = limit (output);
-//        outputR[i] = outputL[i];
+        output = 0.5 * oneDWave->getOutput (0.3);
+        outputL[i] = limit (output);
+        outputR[i] = outputL[i];
 //        DBG (output);
         oneDWave->updateStates();
         
@@ -113,4 +120,9 @@ double MainComponent::limit (double val)
         return -1.0;
     else
         return val;
+}
+
+void MainComponent::timerCallback()
+{
+    repaint();
 }
