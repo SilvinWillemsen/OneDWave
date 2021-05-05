@@ -1,0 +1,35 @@
+void Simple1DWave::paint (juce::Graphics& g)
+{
+    // clear the background
+    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+    Path stringState = visualiseState (g, 100);
+    // choose your favourite colour
+    g.setColour (Colours::cyan);
+    // visualScaling depends on your excitation
+    g.strokePath (visualiseState (g, 100), PathStrokeType(2.0f));
+}
+Path Simple1DWave::visualiseState (Graphics& g, double visualScaling)
+{
+    // String-boundaries are in the vertical middle of the component
+    double stringBoundaries = getHeight() / 2.0;
+    // initialise path
+    Path stringPath;
+    // start path
+    stringPath.startNewSubPath (0, -u[1][0] * visualScaling + stringBoundaries);
+    double spacing = getWidth() / static_cast<double>(N);
+    double x = spacing;
+    for (int l = 1; l <= N; l++)
+    {
+        // Needs to be -u, because a positive u would visually go down
+        float newY = -u[1][l] * visualScaling + stringBoundaries;
+        if (isnan(x) || isinf(abs(x)) || isnan(u[1][l]) || isinf(abs(u[1][l])))
+            std::cout << "Wait" << std::endl;
+        // if we get NAN values, make sure that we don’t get an
+        // exception
+        if (isnan(newY))
+            newY = 0;
+        stringPath.lineTo (x, newY);
+        x += spacing;
+    }
+    return stringPath;
+}
